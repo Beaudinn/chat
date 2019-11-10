@@ -2,18 +2,18 @@
 
 namespace Musonza\Chat\Messages;
 
-use Musonza\Chat\Commanding\CommandHandler;
+use Illuminate\Database\Eloquent\Model;
 use Musonza\Chat\Eventing\EventDispatcher;
 use Musonza\Chat\Models\Message;
 
-class SendMessageCommandHandler implements CommandHandler
+class SendMessageCommandHandler
 {
     protected $message;
     protected $dispatcher;
 
     /**
      * @param EventDispatcher $dispatcher The dispatcher
-     * @param Message $message    The message
+     * @param Message         $message    The message
      */
     public function __construct(EventDispatcher $dispatcher, Message $message)
     {
@@ -24,13 +24,13 @@ class SendMessageCommandHandler implements CommandHandler
     /**
      * Triggers sending the message.
      *
-     * @param  $command  The command
+     * @param SendMessageCommand $command The command
      *
-     * @return Message
+     * @return Model
      */
-    public function handle($command)
+    public function handle(SendMessageCommand $command)
     {
-        $message = $this->message->send($command->conversation, $command->body, $command->senderId, $command->type);
+        $message = $this->message->send($command->conversation, $command->body, $command->participant, $command->type);
 
         $this->dispatcher->dispatch($this->message->releaseEvents());
 

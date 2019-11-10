@@ -11,14 +11,29 @@ use Musonza\Chat\Traits\SetsParticipants;
 class Chat
 {
     use SetsParticipants;
+    /**
+     * @var MessageService
+     */
+    protected $messageService;
+    /**
+     * @var ConversationService
+     */
+    protected $conversationService;
+    /**
+     * @var MessageNotification
+     */
+    protected $messageNotification;
 
     /**
-     * @param MessageService $messageService
+     * @param MessageService      $messageService
      * @param ConversationService $conversationService
      * @param MessageNotification $messageNotification
      */
-    public function __construct(MessageService $messageService, ConversationService $conversationService, MessageNotification $messageNotification)
-    {
+    public function __construct(
+        MessageService $messageService,
+        ConversationService $conversationService,
+        MessageNotification $messageNotification
+    ) {
         $this->messageService = $messageService;
         $this->conversationService = $conversationService;
         $this->messageNotification = $messageNotification;
@@ -34,13 +49,26 @@ class Chat
      */
     public function createConversation(array $participants, array $data = [])
     {
-        return $this->conversationService->start($participants, $data);
+        $payload = [
+            'participants'   => $participants,
+            'data'           => $data,
+            'direct_message' => $this->conversationService->directMessage,
+        ];
+
+        return $this->conversationService->start($payload);
+    }
+
+    public function makeDirect()
+    {
+        $this->conversationService->directMessage = true;
+
+        return $this;
     }
 
     /**
      * Sets message.
      *
-     * @param string | Musonza\Chat\Models\Message  $message
+     * @param string $message
      *
      * @return MessageService
      */
@@ -62,7 +90,8 @@ class Chat
     /**
      * Sets Conversation.
      *
-     * @param  Conversation $conversation
+     * @param Conversation $conversation
+     *
      * @return ConversationService
      */
     public function conversation(Conversation $conversation)
@@ -87,32 +116,13 @@ class Chat
      */
     public function unReadNotifications()
     {
-        return $this->messageNotification->unReadNotifications($this->user);
-    }
-
-    /**
-     * Returns the User Model class.
-     *
-     * @return string
-     */
-    public static function userModel()
-    {
-        return config('musonza_chat.user_model');
-    }
-
-    /**
-     * Returns primary key for the User model
-     * @return string
-     */
-    public static function userModelPrimaryKey()
-    {
-        return config('musonza_chat.user_model_primary_key') ?: app(self::userModel())->getKeyName();
+        return $this->messageNotification->unReadNotifications($this->participant);
     }
 
     /**
      * Should the messages be broadcasted.
      *
-     * @return boolean
+     * @return bool
      */
     public static function broadcasts()
     {
@@ -124,8 +134,10 @@ class Chat
         return config('musonza_chat.sent_message_event');
     }
 
-    public static function makeThreeOrMoreUsersPublic()
+    public static function senderFieldsWhitelist()
     {
-        return config('musonza_chat.make_three_or_more_users_public', true);
+        $fields = config('musonza_chat.sender_fields_whitelist', []);
+
+        return (is_array($fields) && !empty($fields)) ? $fields : null;
     }
 }
